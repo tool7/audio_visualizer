@@ -1,22 +1,33 @@
 <template>
   <div id="app">
-    <audio-drag-drop />
+    <audio-file-selector @select="audioFile = $event" />
     <br />
-    <el-button @click="onClick">Button</el-button>
+    <audio-visualizer :file="audioFile" ref="audioVisualizer" />
+    <br />
+    <el-button @click="onStart" :disabled="!audioFile" :loading="isPlaying">PLAY</el-button>
   </div>
 </template>
 
 <script>
-import AudioDragDrop from "./components/AudioDragDrop.vue"
+import AudioFileSelector from "./components/AudioFileSelector.vue"
+import AudioVisualizer from "./components/AudioVisualizer.vue"
 
 export default {
   name: "App",
   components: {
-    AudioDragDrop,
+    AudioFileSelector,
+    AudioVisualizer,
+  },
+  data() {
+    return {
+      audioFile: null,
+      isPlaying: false,
+    }
   },
   methods: {
-    onClick() {
-      alert("test")
+    onStart() {
+      this.isPlaying = true
+      this.$refs.audioVisualizer.start()
     },
   },
 }
@@ -28,7 +39,6 @@ export default {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+  margin-top: 100px;
 }
 </style>
