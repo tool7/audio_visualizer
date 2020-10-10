@@ -16,8 +16,11 @@
 </template>
 
 <script>
+import * as dat from "dat.gui"
 import AudioFileSelector from "./components/AudioFileSelector.vue"
 import AudioVisualizer from "./components/AudioVisualizer.vue"
+
+const gui = new dat.GUI()
 
 export default {
   name: "App",
