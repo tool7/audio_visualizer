@@ -2,7 +2,14 @@
   <div id="app">
     <audio-file-selector @select="audioFile = $event" />
     <br />
-    <audio-visualizer :file="audioFile" ref="audioVisualizer" />
+    <audio-visualizer :file="audioFile" :visualizer-type="visualizerType" ref="audioVisualizer" />
+    <br />
+    <el-select v-model="visualizerType" placeholder="Select visualizer">
+      <el-option label="Line bars" value="line-bars"></el-option>
+      <el-option label="Circle bars" value="circle-bars"></el-option>
+      <el-option label="Sine wave" value="sinewave"></el-option>
+    </el-select>
+    <br />
     <br />
     <el-button @click="onStart" :disabled="!audioFile" :loading="isPlaying">PLAY</el-button>
   </div>
@@ -20,6 +27,7 @@ export default {
   },
   data() {
     return {
+      visualizerType: "line-bars",
       audioFile: null,
       isPlaying: false,
     }
