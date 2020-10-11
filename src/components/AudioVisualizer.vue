@@ -1,8 +1,10 @@
 <template>
-  <canvas ref="canvas" width="1024" height="500"></canvas>
+  <canvas ref="canvas" width="1024" height="512"></canvas>
 </template>
 
 <script>
+import { nextPowerOf2 } from "../util/helpers"
+
 export default {
   props: {
     file: {
@@ -13,9 +15,9 @@ export default {
       type: String,
       required: true,
     },
-    options: {
+    config: {
       type: Object,
-      default: () => ({}),
+      required: true,
     },
   },
   data() {
@@ -23,7 +25,21 @@ export default {
       analyser: null,
       frequencyData: null,
       canvasCtx: null,
+      barCountOldValue: this.config.sampleDensity,
     }
+  },
+  watch: {
+    config: {
+      deep: true,
+      handler() {
+        if (this.config.sampleDensity === this.barCountOldValue) {
+          return
+        }
+
+        this.analyser.fftSize = nextPowerOf2(this.config.sampleDensity) * 2
+        this.frequencyData = new Uint8Array(this.analyser.frequencyBinCount)
+      },
+    },
   },
   methods: {
     start() {
@@ -37,8 +53,7 @@ export default {
 
       this.canvasCtx = this.$refs.canvas.getContext("2d")
       this.analyser = audioContext.createAnalyser()
-      // TODO: Make it variable
-      this.analyser.fftSize = 1024
+      this.analyser.fftSize = nextPowerOf2(this.config.sampleDensity) * 2
       this.frequencyData = new Uint8Array(this.analyser.frequencyBinCount)
 
       reader.onload = async e => {
@@ -70,19 +85,20 @@ export default {
       const canvasWidth = this.$refs.canvas.width
       const canvasHeight = this.$refs.canvas.height
 
-      this.canvasCtx.fillStyle = "#333"
+      this.canvasCtx.fillStyle = this.config.backgroundColor
       this.canvasCtx.fillRect(0, 0, canvasWidth, canvasHeight)
-      this.canvasCtx.fillStyle = "orange"
+      this.canvasCtx.fillStyle = this.config.barColor
       this.canvasCtx.beginPath()
 
-      const barWidth = canvasWidth / this.analyser.frequencyBinCount
+      const barWidth = canvasWidth / this.config.sampleDensity
       let x = 0
 
-      for (let i = 0; i < this.analyser.frequencyBinCount; i++) {
-        const barHeight = this.frequencyData[i]
+      for (let i = 0; i < this.config.sampleDensity; i++) {
+        const frequency = this.frequencyData[i]
+        const barHeight = frequency * this.config.amplitudeMultiplier
         this.canvasCtx.fillRect(x, canvasHeight - barHeight, barWidth, barHeight)
 
-        x += barWidth + (this.options.gutter || 2)
+        x += barWidth + this.config.lineBarMargin
       }
     },
     drawCircleBarsVisualizer() {
@@ -92,23 +108,21 @@ export default {
       const canvas = this.$refs.canvas
       const centerX = canvas.width / 2
       const centerY = canvas.height / 2
-      const radius = 120
-      const barWidth = this.options.gutter || 2
-      // TODO: Make it variable (Must be lower than this.frequencyData.length!!!)
-      const barCount = 200
-      const radians = (Math.PI * 2) / barCount
+      const radius = this.config.circleRadius
+      const barWidth = this.config.circleBarThickness
+      const radians = (Math.PI * 2) / this.config.sampleDensity
 
-      this.canvasCtx.fillStyle = "#333"
+      this.canvasCtx.lineWidth = this.config.circleThickness
+      this.canvasCtx.fillStyle = this.config.backgroundColor
       this.canvasCtx.fillRect(0, 0, canvas.width, canvas.height)
 
       this.canvasCtx.beginPath()
       this.canvasCtx.arc(centerX, centerY, radius, 0, 2 * Math.PI)
       this.canvasCtx.stroke()
 
-      for (let i = 0; i < barCount; i++) {
+      for (let i = 0; i < this.config.sampleDensity; i++) {
         const frequency = this.frequencyData[i]
-        // TODO: Make '0.7' variable
-        const barHeight = frequency * 0.7
+        const barHeight = frequency * this.config.amplitudeMultiplier
         const sine = Math.sin(radians * i)
         const cosine = Math.cos(radians * i)
         const x = centerX + cosine * radius
@@ -116,8 +130,7 @@ export default {
         const xEnd = centerX + cosine * (radius + barHeight)
         const yEnd = centerY + sine * (radius + barHeight)
 
-        const lineColor = "rgb(" + frequency + ", " + frequency + ", " + 205 + ")"
-        this.canvasCtx.strokeStyle = lineColor
+        this.canvasCtx.strokeStyle = this.config.barColor
         this.canvasCtx.lineWidth = barWidth
         this.canvasCtx.beginPath()
         this.canvasCtx.moveTo(x, y)
@@ -131,18 +144,18 @@ export default {
 
       const canvas = this.$refs.canvas
 
-      this.canvasCtx.fillStyle = "#333"
+      this.canvasCtx.fillStyle = this.config.backgroundColor
       this.canvasCtx.fillRect(0, 0, canvas.width, canvas.height)
-      this.canvasCtx.lineWidth = 2
-      this.canvasCtx.strokeStyle = "orange"
+      this.canvasCtx.lineWidth = this.config.sineWaveLineThickness
+      this.canvasCtx.strokeStyle = this.config.barColor
       this.canvasCtx.beginPath()
 
-      const sliceWidth = canvas.width / this.analyser.frequencyBinCount
+      const sliceWidth = canvas.width / this.config.sampleDensity
       let x = 0
 
       for (let i = 0; i < this.analyser.frequencyBinCount; i++) {
-        const v = this.frequencyData[i] / 128
-        const y = (v * canvas.height) / 2
+        const normalizedFrequency = this.frequencyData[i] - 128
+        const y = canvas.height / 2 + normalizedFrequency * this.config.amplitudeMultiplier
 
         if (i === 0) {
           this.canvasCtx.moveTo(x, y)
