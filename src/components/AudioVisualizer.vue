@@ -7,9 +7,9 @@ import { nextPowerOf2 } from "../util/helpers"
 
 export default {
   props: {
-    file: {
-      type: File,
-      default: null,
+    frequencyData: {
+      type: Uint8Array,
+      default: [],
     },
     visualizerType: {
       type: String,
@@ -22,65 +22,28 @@ export default {
   },
   data() {
     return {
-      analyser: null,
-      frequencyData: null,
       canvasCtx: null,
-      barCountOldValue: this.config.sampleDensity,
     }
-  },
-  watch: {
-    config: {
-      deep: true,
-      handler() {
-        if (this.config.sampleDensity === this.barCountOldValue) {
-          return
-        }
-
-        this.analyser.fftSize = nextPowerOf2(this.config.sampleDensity) * 2
-        this.frequencyData = new Uint8Array(this.analyser.frequencyBinCount)
-      },
-    },
   },
   methods: {
     start() {
-      if (!this.file) {
-        return
-      }
-
-      const reader = new FileReader()
-      const audioContext = new AudioContext()
-      const audio = new Audio()
-
       this.canvasCtx = this.$refs.canvas.getContext("2d")
-      this.analyser = audioContext.createAnalyser()
-      this.analyser.fftSize = nextPowerOf2(this.config.sampleDensity) * 2
-      this.frequencyData = new Uint8Array(this.analyser.frequencyBinCount)
 
-      reader.onload = async e => {
-        audio.src = e.target.result
-        audio.play()
-
-        const source = audioContext.createMediaElementSource(audio)
-        source.connect(this.analyser)
-        this.analyser.connect(audioContext.destination)
-
-        switch (this.visualizerType) {
-          case "line-bars":
-            this.drawLineBarsVisualizer()
-            break
-          case "circle-bars":
-            this.drawCircleBarsVisualizer()
-            break
-          case "sinewave":
-            this.drawSineWave()
-            break
-        }
+      switch (this.visualizerType) {
+        case "line-bars":
+          this.drawLineBarsVisualizer()
+          break
+        case "circle-bars":
+          this.drawCircleBarsVisualizer()
+          break
+        case "sinewave":
+          this.drawSineWave()
+          break
       }
-      reader.readAsDataURL(this.file)
     },
     drawLineBarsVisualizer() {
       requestAnimationFrame(this.drawLineBarsVisualizer)
-      this.analyser.getByteFrequencyData(this.frequencyData)
+      this.$emit("animation-frame")
 
       const canvasWidth = this.$refs.canvas.width
       const canvasHeight = this.$refs.canvas.height
@@ -103,7 +66,7 @@ export default {
     },
     drawCircleBarsVisualizer() {
       requestAnimationFrame(this.drawCircleBarsVisualizer)
-      this.analyser.getByteFrequencyData(this.frequencyData)
+      this.$emit("animation-frame")
 
       const canvas = this.$refs.canvas
       const centerX = canvas.width / 2
@@ -140,7 +103,7 @@ export default {
     },
     drawSineWave() {
       requestAnimationFrame(this.drawSineWave)
-      this.analyser.getByteTimeDomainData(this.frequencyData)
+      this.$emit("animation-frame")
 
       const canvas = this.$refs.canvas
 
@@ -153,7 +116,7 @@ export default {
       const sliceWidth = canvas.width / this.config.sampleDensity
       let x = 0
 
-      for (let i = 0; i < this.analyser.frequencyBinCount; i++) {
+      for (let i = 0; i < this.frequencyData.length; i++) {
         const normalizedFrequency = this.frequencyData[i] - 128
         const y = canvas.height / 2 + normalizedFrequency * this.config.amplitudeMultiplier
 

@@ -1,28 +1,32 @@
 <template>
   <div class="app">
     <h1 class="title">Audio Visualizer</h1>
-    <el-tabs type="border-card">
-      <el-tab-pane label="LINE BARS">
+
+    <el-tabs v-model="activeTab" @tab-click="onTabClick" type="border-card">
+      <el-tab-pane label="LINE BARS" name="line-bars">
         <audio-visualizer
-          :file="audioFile"
+          :frequency-data="byteFrequencyData"
           :config="visualizerConfig"
           visualizer-type="line-bars"
+          @animation-frame="onAnimationFrame"
           ref="lineBarsVisualizer"
         />
       </el-tab-pane>
-      <el-tab-pane label="CIRCLE BARS">
+      <el-tab-pane label="CIRCLE BARS" name="circle-bars">
         <audio-visualizer
-          :file="audioFile"
+          :frequency-data="byteFrequencyData"
           :config="visualizerConfig"
           visualizer-type="circle-bars"
+          @animation-frame="onAnimationFrame"
           ref="circleBarsVisualizer"
         />
       </el-tab-pane>
-      <el-tab-pane label="SINE WAVE">
+      <el-tab-pane label="SINE WAVE" name="sinewave">
         <audio-visualizer
-          :file="audioFile"
+          :frequency-data="byteTimeDomainData"
           :config="visualizerConfig"
           visualizer-type="sinewave"
+          @animation-frame="onAnimationFrame"
           ref="sineWaveVisualizer"
         />
       </el-tab-pane>
@@ -30,12 +34,15 @@
     <br />
     <audio-file-selector @select="audioFile = $event" />
     <br />
+    <audio controls ref="audioPlayer"></audio>
+    <br />
     <el-button @click="onStart" :disabled="!audioFile" :loading="isPlaying">PLAY</el-button>
   </div>
 </template>
 
 <script>
 import * as dat from "dat.gui"
+import { nextPowerOf2 } from "./util/helpers"
 import AudioFileSelector from "./components/AudioFileSelector.vue"
 import AudioVisualizer from "./components/AudioVisualizer.vue"
 
@@ -60,6 +67,11 @@ export default {
         circleThickness: 2,
         sineWaveLineThickness: 2,
       },
+      sampleDensityOldValue: 100,
+      analyser: null,
+      byteFrequencyData: null,
+      byteTimeDomainData: null,
+      activeTab: "line-bars",
       audioFile: null,
       isPlaying: false,
     }
@@ -93,15 +105,71 @@ export default {
     const sineWaveVisualizer = gui.addFolder("Sine wave")
     sineWaveVisualizer.closed = false
     sineWaveVisualizer
-      .add(this.visualizerConfig, "sineWaveLineThickness", 1, 50)
+      .add(this.visualizerConfig, "sineWaveLineThickness", 1, 20)
       .name("Line thickness")
+
+    const audioContext = new AudioContext()
+    this.analyser = audioContext.createAnalyser()
+    this.analyser.fftSize = nextPowerOf2(this.visualizerConfig.sampleDensity) * 2
+    this.analyser.connect(audioContext.destination)
+
+    const mediaElementSource = audioContext.createMediaElementSource(this.$refs.audioPlayer)
+    mediaElementSource.connect(this.analyser)
+
+    this.byteFrequencyData = new Uint8Array(this.analyser.frequencyBinCount)
+    this.byteTimeDomainData = new Uint8Array(this.analyser.frequencyBinCount)
+  },
+  watch: {
+    visualizerConfig: {
+      deep: true,
+      handler() {
+        if (this.visualizerConfig.sampleDensity === this.sampleDensityOldValue) {
+          return
+        }
+
+        this.sampleDensityOldValue = this.visualizerConfig.sampleDensity
+
+        this.analyser.fftSize = nextPowerOf2(this.visualizerConfig.sampleDensity) * 2
+        this.byteFrequencyData = new Uint8Array(this.analyser.frequencyBinCount)
+        this.byteTimeDomainData = new Uint8Array(this.analyser.frequencyBinCount)
+      },
+    },
   },
   methods: {
+    onTabClick() {
+      if (!this.isPlaying) {
+        return
+      }
+      this.startVisualizer()
+    },
     onStart() {
       this.isPlaying = true
-      this.$refs.lineBarsVisualizer.start()
-      this.$refs.circleBarsVisualizer.start()
-      this.$refs.sineWaveVisualizer.start()
+
+      const reader = new FileReader()
+      reader.onload = async e => {
+        this.$refs.audioPlayer.src = e.target.result
+        this.$refs.audioPlayer.play()
+
+        this.startVisualizer()
+      }
+      reader.readAsDataURL(this.audioFile)
+    },
+    startVisualizer() {
+      switch (this.activeTab) {
+        case "line-bars":
+          this.$refs.lineBarsVisualizer.start()
+          break
+        case "circle-bars":
+          this.$refs.circleBarsVisualizer.start()
+          break
+        case "sinewave":
+          this.$refs.sineWaveVisualizer.start()
+          break
+      }
+    },
+    onAnimationFrame() {
+      this.analyser.getByteFrequencyData(this.byteFrequencyData)
+      this.analyser.getByteTimeDomainData(this.byteTimeDomainData)
     },
   },
 }
