@@ -1,24 +1,14 @@
-# audio_visualizer
+# Audio Visualizer
+### Simple audio visualizer written in Vue.js
+***
 
-## Project setup
-```
-npm install
-```
+### Setup:
+1. Install dependencies with `npm install`
+2. Run project with `npm run dev`
+3. Open `http://localhost:8080` in your browser
 
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
-
-### Compiles and minifies for production
-```
-npm run build
-```
-
-### Lints and fixes files
-```
-npm run lint
-```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+***
+### Screenshots:
+![screenshot-1](https://github.com/tool7/audio_visualizer/blob/master/screenshots/screenshot-1.png)
+![screenshot-2](https://github.com/tool7/audio_visualizer/blob/master/screenshots/screenshot-2.png)
+![screenshot-3](https://github.com/tool7/audio_visualizer/blob/master/screenshots/screenshot-3.png)
