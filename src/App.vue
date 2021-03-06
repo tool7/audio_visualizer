@@ -36,7 +36,9 @@
     <br />
     <audio controls ref="audioPlayer"></audio>
     <br />
-    <el-button @click="onStart" :disabled="!audioFile" :loading="isPlaying">PLAY</el-button>
+    <el-button type="primary" @click="onStart" :disabled="!audioFile" :loading="isPlaying">
+      PLAY
+    </el-button>
   </div>
 </template>
 
@@ -176,13 +178,19 @@ export default {
 </script>
 
 <style>
-.app {
+body {
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+.app {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
 }
 .title {
   color: #606266;
+}
+audio {
+  width: 500px;
+  margin: 10px 0;
 }
 </style>

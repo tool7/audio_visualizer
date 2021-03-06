@@ -1,13 +1,10 @@
 <template>
   <div>
-    <el-upload action="#" :auto-upload="false" :on-change="onChange" drag>
-      <i class="el-icon-upload"></i>
-      <div class="el-upload__text">
-        Drop your audio file here or <em>click here</em> to select it
-      </div>
-      <div class="el-upload__tip" slot="tip">
-        audio files with a size less than 10MB
-      </div>
+    <el-upload action="#" :auto-upload="false" :on-change="onChange" :show-file-list="false">
+      <el-button type="default">
+        <i class="el-icon-upload"></i>
+        Select audio file
+      </el-button>
     </el-upload>
     <div></div>
   </div>
@@ -17,6 +14,16 @@
 export default {
   methods: {
     onChange(file) {
+      const isAudioFile = file.raw.type.includes("audio/")
+
+      if (!isAudioFile) {
+        this.$notify.error({
+          title: "Error",
+          message: "The file must be an audio type",
+        })
+        return
+      }
+
       this.$emit("select", file.raw)
     },
   },
